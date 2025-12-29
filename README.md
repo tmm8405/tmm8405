@@ -1,5 +1,5 @@
 # 💫 About Me:
-🔭 I’m currently working on random stuff<br>🤝 I’m looking for help with nothing ig<br>🌱 I’m currently learning everything <br>💬 Ask me about<br>⚡ Fun fact: I like Cats!!
+🔭 I’m currently working on random stuff<br>🤝 I’m looking for help with nothing ig<br>🌱 I’m currently learning everything <br>💬 Ask me about anything<br>⚡ Fun fact: I like Cats!!
 
 
 ## 🌐 Socials:
