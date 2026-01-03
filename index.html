@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMM8405 | Portfolio</title>
+    
+    <!-- Favicon using GitHub PFP -->
+    <link rel="icon" href="https://github.com/tmm8405.png" type="image/png">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #050505;
+            --text: #ffffff;
+            --text-gray: #a1a1a1;
+            --primary-grad: linear-gradient(135deg, #FF9D6C 0%, #BB4E75 50%, #FF0080 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* --- THREE.JS BACKGROUND --- */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        /* Noise Texture Overlay */
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.05;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* --- NAVIGATION --- */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem 5%;
+            position: fixed;
+            width: 100%;
+            z-index: 100;
+            background: rgba(0,0,0,0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .socials a {
+            color: var(--text);
+            font-size: 1.2rem;
+            margin-left: 20px;
+            transition: 0.3s;
+        }
+
+        .socials a:hover {
+            color: #ec4899;
+            transform: scale(1.1);
+        }
+
+        /* --- HERO --- */
+        header {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .profile-container {
+            width: 180px;
+            height: 180px;
+            margin-bottom: 2rem;
+        }
+
+        .pfp {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid rgba(255,255,255,0.1);
+            background-image: url('https://github.com/tmm8405.png');
+            background-size: cover;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+        }
+        
+        .pfp:hover {
+            transform: scale(1.1);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 4.5rem;
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            background: linear-gradient(to bottom right, #ffffff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #ec4899;
+            margin-bottom: 2rem;
+            font-family: 'Space Grotesk', monospace;
+            background: rgba(236, 72, 153, 0.1);
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(236, 72, 153, 0.2);
+        }
+
+        .description {
+            max-width: 600px;
+            color: var(--text-gray);
+            margin-bottom: 25px;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+
+        /* Tags */
+        .skills-scroller {
+            margin-top: 2rem;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 700px;
+        }
+
+        .skill-tag {
+            padding: 8px 18px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 30px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: 0.3s;
+            cursor: default;
+        }
+
+        .skill-tag:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+        }
+
+        /* --- GRID --- */
+        .section-title {
+            text-align: center;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.5rem;
+            margin: 4rem 0 3rem 0;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            padding: 2rem 10%;
+            max-width: 1400px;
+            margin: 0 auto 5rem auto;
+        }
+
+        /* --- CARDS --- */
+        .card {
+            background: rgba(20, 20, 20, 0.6); 
+            backdrop-filter: blur(16px); 
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.25);
+            background: rgba(30, 30, 30, 0.7);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            background: var(--primary-grad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(187, 78, 117, 0.3));
+        }
+
+        .card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .card p {
+            color: var(--text-gray);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.05);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 500;
+            margin-top: auto;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: 0.3s;
+            width: fit-content;
+        }
+
+        .btn:hover {
+            background: #fff;
+            color: #000;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 4rem 2rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            color: var(--text-gray);
+            position: relative;
+            z-index: 10;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 3rem; }
+            .grid-container { padding: 1rem 5%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Three.js Canvas Container -->
+    <div id="canvas-container"></div>
+    <div class="noise-overlay"></div>
+
+    <!-- Nav -->
+    <nav>
+        <a href="#" class="logo">TMM8405</a>
+        <div class="socials">
+            <a href="https://github.com/tmm8405" target="_blank"><i class="fab fa-github"></i></a>
+            <a href="https://discord.com/users/994252380369584168" target="_blank"><i class="fab fa-discord"></i></a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <header>
+        <div class="profile-container">
+            <div class="pfp"></div>
+        </div>
+        
+        <h1>I Build Logic</h1>
+        <div class="subtitle">Full Stack Dev • System Admin • Bot Creator</div>
+
+        <p class="description">
+            I am TMM8405. I specialize in building high-performance systems. From managing Minecraft Server infrastructure to coding intelligent Chatbots on Telegram and Discord.
+        </p>
+
+        <div class="skills-scroller">
+            <span class="skill-tag"><i class="fab fa-python"></i> Python</span>
+            <span class="skill-tag"><i class="fab fa-java"></i> Java</span>
+            <span class="skill-tag"><i class="fas fa-terminal"></i> C</span>
+            <span class="skill-tag"><i class="fab fa-html5"></i> HTML/CSS</span>
+            <span class="skill-tag"><i class="fas fa-server"></i> Pterodactyl</span>
+            <span class="skill-tag"><i class="fab fa-linux"></i> Linux</span>
+        </div>
+    </header>
+
+    <!-- Projects -->
+    <h2 class="section-title">My Work</h2>
+    
+    <div class="grid-container">
+        <!-- Riddly -->
+        <div class="card">
+            <div>
+                <i class="fab fa-telegram card-icon"></i>
+                <h3>Riddly Bot</h3>
+                <p>An intelligent Telegram chatbot designed for interaction and utility. Built with Python for speed and reliability.</p>
+            </div>
+            <a href="https://t.me/riddly_bot" target="_blank" class="btn">
+                Chat with Riddly <i class="fas fa-arrow-right" style="margin-left: 8px; font-size: 0.8rem;"></i>
+            </a>
+        </div>
+
+        <!-- Minecraft -->
+        <div class="card">
+            <div>
+                <i class="fas fa-cube card-icon"></i>
+                <h3>MC Infrastructure</h3>
+                <p>Expert Pterodactyl Panel configuration. I manage plugins, server optimization, and Linux backends for gaming communities.</p>
+            </div>
+            <span class="btn" style="cursor: default; opacity: 0.7;">
+                Server Manager
+            </span>
+        </div>
+
+        <!-- Discord -->
+        <div class="card">
+            <div>
+                <i class="fab fa-discord card-icon"></i>
+                <h3>Discord Ecosystems</h3>
+                <p>Advanced Discord bot development and server management. Economy systems, moderation tools, and community setup.</p>
+            </div>
+            <a href="https://discord.com/users/994252380369584168" target="_blank" class="btn">Contact Me</a>
+        </div>
+
+        <!-- Development -->
+        <div class="card">
+            <div>
+                <i class="fas fa-code card-icon"></i>
+                <h3>Full Stack Dev</h3>
+                <p>Proficient in Python, Java, and C. I do random coding projects, script automation, and backend logic experiments.</p>
+            </div>
+            <a href="https://github.com/tmm8405" target="_blank" class="btn">View GitHub</a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 TMM8405. All Rights Reserved.</p>
+    </footer>
+
+    <!-- Three.js Background Logic -->
+    <script>
+        const container = document.getElementById('canvas-container');
+
+        // Scene Setup
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050505, 0.001);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // Particles Geometry
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 5000;
+        
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for(let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 15; 
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+        // Material
+        const material = new THREE.PointsMaterial({
+            size: 0.008, 
+            color: 0x00e5ff, 
+            transparent: true,
+            opacity: 0.8,
+        });
+
+        // Mesh
+        const particlesMesh = new THREE.Points(particlesGeometry, material);
+        scene.add(particlesMesh);
+
+        camera.position.z = 2;
+
+        // Mouse Interaction
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetX = 0;
+        let targetY = 0;
+
+        const windowHalfX = window.innerWidth / 2;
+        const windowHalfY = window.innerHeight / 2;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX - windowHalfX);
+            mouseY = (event.clientY - windowHalfY);
+        });
+
+        const clock = new THREE.Clock();
+
+        const tick = () => {
+            targetX = mouseX * 0.001;
+            targetY = mouseY * 0.001;
+
+            const elapsedTime = clock.getElapsedTime();
+
+            particlesMesh.rotation.y = .1 * elapsedTime;
+            
+            particlesMesh.rotation.x += 0.05 * (targetY - particlesMesh.rotation.x);
+            particlesMesh.rotation.z += 0.05 * (targetX - particlesMesh.rotation.z);
+
+            renderer.render(scene, camera);
+            window.requestAnimationFrame(tick);
+        }
+
+        tick();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
