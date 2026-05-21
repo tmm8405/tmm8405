@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
@@ -17,6 +17,7 @@ class Settings:
     smtp_user: str
     smtp_password: str
     smtp_from: str
+    smtp_use_ssl: bool
     smtp_use_tls: bool
     database_path: str
     check_interval_seconds: int
@@ -38,6 +39,8 @@ def load_settings() -> Settings:
         smtp_user=smtp_user,
         smtp_password=_get_env("SMTP_PASSWORD", required=True),
         smtp_from=_get_env("SMTP_FROM", smtp_user),
+        smtp_use_ssl=_get_env("SMTP_USE_SSL", "false").lower()
+        in {"1", "true", "yes", "on"},
         smtp_use_tls=_get_env("SMTP_USE_TLS", "true").lower()
         in {"1", "true", "yes", "on"},
         database_path=_get_env("DATABASE_PATH", "data/deadman.sqlite"),

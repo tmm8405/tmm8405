@@ -6,12 +6,11 @@ import math
 import re
 import time
 from datetime import datetime, timezone
-from typing import Callable
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-from config import load_settings
+from config import Settings, load_settings
 from emailer import send_email
 from storage import Storage
 
@@ -205,7 +204,7 @@ async def _post_init(application: Application) -> None:
     application.create_task(_watcher_loop(application))
 
 
-def build_application(settings, storage: Storage) -> Application:
+def build_application(settings: Settings, storage: Storage) -> Application:
     application = (
         Application.builder()
         .token(settings.telegram_token)

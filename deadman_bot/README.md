@@ -33,3 +33,4 @@ python main.py
 ## Notes
 - The SQLite database is stored in `data/deadman.sqlite` by default.
 - The watcher checks for expired timers every 60 seconds (configure with `CHECK_INTERVAL_SECONDS`).
+- If your SMTP provider requires SSL on connect (port 465), set `SMTP_USE_SSL=true` and `SMTP_USE_TLS=false`.

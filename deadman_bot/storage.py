@@ -25,7 +25,9 @@ CREATE INDEX IF NOT EXISTS idx_deadman_chat ON deadman_entries (chat_id);
 class Storage:
     def __init__(self, db_path: str) -> None:
         self.db_path = db_path
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        directory = os.path.dirname(db_path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
         self._init_db()
 
     def _connect(self) -> sqlite3.Connection:
