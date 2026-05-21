@@ -54,12 +54,12 @@ def _days_left(due_at: int, now_ts: int) -> int:
     return max(math.ceil(remaining / SECONDS_PER_DAY), 0)
 
 
-def _ensure_message(update: Update) -> bool:
+def _has_message(update: Update) -> bool:
     return update.message is not None
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not _ensure_message(update):
+    if not _has_message(update):
         return
     await update.message.reply_text(
         "Send a delayed email when you stop checking in.\n\n"
@@ -72,7 +72,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def schedule(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not _ensure_message(update):
+    if not _has_message(update):
         return
     if len(context.args) < 3:
         await update.message.reply_text(
@@ -111,7 +111,7 @@ async def schedule(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def extend(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not _ensure_message(update):
+    if not _has_message(update):
         return
     if len(context.args) < 1:
         await update.message.reply_text("Usage: /extend <days>")
@@ -139,7 +139,7 @@ async def extend(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not _ensure_message(update):
+    if not _has_message(update):
         return
 
     storage: Storage = context.application.bot_data["storage"]
@@ -157,11 +157,11 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not _ensure_message(update):
+    if not _has_message(update):
         return
 
     storage: Storage = context.application.bot_data["storage"]
-    removed = storage.delete_active_entry(update.message.chat_id)
+    removed = storage.delete_active_entries(update.message.chat_id)
 
     if removed:
         await update.message.reply_text("Cancelled your scheduled message.")
@@ -186,7 +186,11 @@ async def _watcher_loop(application: Application) -> None:
                         text=f"Email sent to {entry['email']}.",
                     )
                 except Exception:
-                    logging.exception("Failed to send email for entry %s", entry["id"])
+                    logging.exception(
+                        "Failed to send email for entry %s to %s",
+                        entry["id"],
+                        entry["email"],
+                    )
             await asyncio.sleep(settings.check_interval_seconds)
         except asyncio.CancelledError:
             raise

@@ -103,7 +103,7 @@ class Storage:
             )
             conn.commit()
 
-    def delete_active_entry(self, chat_id: int) -> int:
+    def delete_active_entries(self, chat_id: int) -> int:
         with self._connect() as conn:
             cur = conn.execute(
                 "DELETE FROM deadman_entries WHERE chat_id = ? AND sent_at IS NULL",

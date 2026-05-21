@@ -24,7 +24,10 @@ def send_email(settings: Settings, recipient: str, body: str) -> None:
         smtp.ehlo()
         if settings.smtp_use_tls and not settings.smtp_use_ssl:
             if not smtp.has_extn("starttls"):
-                raise RuntimeError("SMTP server does not support STARTTLS")
+                raise RuntimeError(
+                    "SMTP server does not support STARTTLS. "
+                    "Set SMTP_USE_TLS=false or adjust your SMTP settings."
+                )
             smtp.starttls(context=ssl_context)
             smtp.ehlo()
         smtp.login(settings.smtp_user, settings.smtp_password)
