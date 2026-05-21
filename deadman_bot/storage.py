@@ -23,6 +23,12 @@ CREATE INDEX IF NOT EXISTS idx_deadman_due ON deadman_entries (due_at);
 CREATE INDEX IF NOT EXISTS idx_deadman_chat ON deadman_entries (chat_id);
 """
 
+COLUMN_DEFINITIONS = {
+    "attempts": "attempts INTEGER NOT NULL DEFAULT 0",
+    "last_attempt_at": "last_attempt_at INTEGER",
+    "failed_at": "failed_at INTEGER",
+}
+
 
 class Storage:
     def __init__(self, db_path: str) -> None:
@@ -40,15 +46,18 @@ class Storage:
     def _init_db(self) -> None:
         with self._connect() as conn:
             conn.executescript(SCHEMA)
-            self._ensure_column(conn, "attempts", "attempts INTEGER NOT NULL DEFAULT 0")
-            self._ensure_column(conn, "last_attempt_at", "last_attempt_at INTEGER")
-            self._ensure_column(conn, "failed_at", "failed_at INTEGER")
+            self._ensure_column(conn, "attempts")
+            self._ensure_column(conn, "last_attempt_at")
+            self._ensure_column(conn, "failed_at")
             conn.commit()
 
-    def _ensure_column(self, conn: sqlite3.Connection, name: str, definition: str) -> None:
+    def _ensure_column(self, conn: sqlite3.Connection, name: str) -> None:
         cur = conn.execute("PRAGMA table_info(deadman_entries)")
         columns = {row["name"] for row in cur.fetchall()}
         if name not in columns:
+            definition = COLUMN_DEFINITIONS.get(name)
+            if not definition:
+                raise ValueError(f"Unknown column definition for {name}")
             conn.execute(f"ALTER TABLE deadman_entries ADD COLUMN {definition}")
 
     def upsert_entry(

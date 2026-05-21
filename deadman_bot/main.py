@@ -181,7 +181,12 @@ async def _watcher_loop(application: Application) -> None:
             )
             for entry in due_entries:
                 try:
-                    send_email(settings, entry["email"], _build_email_body(entry["message"]))
+                    await asyncio.to_thread(
+                        send_email,
+                        settings,
+                        entry["email"],
+                        _build_email_body(entry["message"]),
+                    )
                     storage.mark_sent(entry["id"], now_ts)
                     await application.bot.send_message(
                         chat_id=entry["chat_id"],
