@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import sqlite3
-from typing import Iterable
 
 
 SCHEMA = """
@@ -14,7 +13,10 @@ CREATE TABLE IF NOT EXISTS deadman_entries (
     due_at INTEGER NOT NULL,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
-    sent_at INTEGER
+    sent_at INTEGER,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_attempt_at INTEGER,
+    failed_at INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_deadman_due ON deadman_entries (due_at);
@@ -38,7 +40,16 @@ class Storage:
     def _init_db(self) -> None:
         with self._connect() as conn:
             conn.executescript(SCHEMA)
+            self._ensure_column(conn, "attempts", "attempts INTEGER NOT NULL DEFAULT 0")
+            self._ensure_column(conn, "last_attempt_at", "last_attempt_at INTEGER")
+            self._ensure_column(conn, "failed_at", "failed_at INTEGER")
             conn.commit()
+
+    def _ensure_column(self, conn: sqlite3.Connection, name: str, definition: str) -> None:
+        cur = conn.execute("PRAGMA table_info(deadman_entries)")
+        columns = {row["name"] for row in cur.fetchall()}
+        if name not in columns:
+            conn.execute(f"ALTER TABLE deadman_entries ADD COLUMN {definition}")
 
     def upsert_entry(
         self, chat_id: int, email: str, message: str, due_at: int, now_ts: int
@@ -47,7 +58,7 @@ class Storage:
             cur = conn.execute(
                 """
                 SELECT id FROM deadman_entries
-                WHERE chat_id = ? AND sent_at IS NULL
+                WHERE chat_id = ? AND sent_at IS NULL AND failed_at IS NULL
                 ORDER BY created_at DESC
                 LIMIT 1
                 """,
@@ -59,7 +70,8 @@ class Storage:
                 conn.execute(
                     """
                     UPDATE deadman_entries
-                    SET email = ?, message = ?, due_at = ?, updated_at = ?
+                    SET email = ?, message = ?, due_at = ?, updated_at = ?,
+                        attempts = 0, last_attempt_at = NULL, failed_at = NULL
                     WHERE id = ?
                     """,
                     (email, message, due_at, now_ts, entry_id),
@@ -67,7 +79,7 @@ class Storage:
                 conn.execute(
                     """
                     DELETE FROM deadman_entries
-                    WHERE chat_id = ? AND sent_at IS NULL AND id != ?
+                    WHERE chat_id = ? AND sent_at IS NULL AND failed_at IS NULL AND id != ?
                     """,
                     (chat_id, entry_id),
                 )
@@ -75,8 +87,8 @@ class Storage:
                 conn.execute(
                     """
                     INSERT INTO deadman_entries
-                        (chat_id, email, message, due_at, created_at, updated_at, sent_at)
-                    VALUES (?, ?, ?, ?, ?, ?, NULL)
+                        (chat_id, email, message, due_at, created_at, updated_at, sent_at, attempts, failed_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NULL, 0, NULL)
                     """,
                     (chat_id, email, message, due_at, now_ts, now_ts),
                 )
@@ -87,7 +99,7 @@ class Storage:
             cur = conn.execute(
                 """
                 SELECT * FROM deadman_entries
-                WHERE chat_id = ? AND sent_at IS NULL
+                WHERE chat_id = ? AND sent_at IS NULL AND failed_at IS NULL
                 ORDER BY created_at DESC
                 LIMIT 1
                 """,
@@ -106,23 +118,58 @@ class Storage:
     def delete_active_entries(self, chat_id: int) -> int:
         with self._connect() as conn:
             cur = conn.execute(
-                "DELETE FROM deadman_entries WHERE chat_id = ? AND sent_at IS NULL",
+                """
+                DELETE FROM deadman_entries
+                WHERE chat_id = ? AND sent_at IS NULL AND failed_at IS NULL
+                """,
                 (chat_id,),
             )
             conn.commit()
             return cur.rowcount
 
-    def get_due_entries(self, now_ts: int) -> Iterable[sqlite3.Row]:
+    def get_due_entries(
+        self, now_ts: int, retry_after_seconds: int
+    ) -> list[sqlite3.Row]:
+        retry_cutoff = now_ts - retry_after_seconds
         with self._connect() as conn:
             cur = conn.execute(
                 """
                 SELECT * FROM deadman_entries
-                WHERE sent_at IS NULL AND due_at <= ?
+                WHERE sent_at IS NULL
+                  AND failed_at IS NULL
+                  AND due_at <= ?
+                  AND (last_attempt_at IS NULL OR last_attempt_at <= ?)
                 ORDER BY due_at ASC
                 """,
-                (now_ts,),
+                (now_ts, retry_cutoff),
             )
             return list(cur.fetchall())
+
+    def record_attempt(self, entry_id: int, now_ts: int) -> int:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE deadman_entries
+                SET attempts = attempts + 1, last_attempt_at = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (now_ts, now_ts, entry_id),
+            )
+            cur = conn.execute(
+                "SELECT attempts FROM deadman_entries WHERE id = ?",
+                (entry_id,),
+            )
+            attempts = cur.fetchone()["attempts"]
+            conn.commit()
+            return attempts
+
+    def mark_failed(self, entry_id: int, now_ts: int) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE deadman_entries SET failed_at = ?, updated_at = ? WHERE id = ?",
+                (now_ts, now_ts, entry_id),
+            )
+            conn.commit()
 
     def mark_sent(self, entry_id: int, now_ts: int) -> None:
         with self._connect() as conn:

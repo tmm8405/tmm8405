@@ -176,7 +176,9 @@ async def _watcher_loop(application: Application) -> None:
     while True:
         try:
             now_ts = int(time.time())
-            due_entries = storage.get_due_entries(now_ts)
+            due_entries = storage.get_due_entries(
+                now_ts, settings.retry_delay_seconds
+            )
             for entry in due_entries:
                 try:
                     send_email(settings, entry["email"], _build_email_body(entry["message"]))
@@ -186,11 +188,21 @@ async def _watcher_loop(application: Application) -> None:
                         text=f"Email sent to {entry['email']}.",
                     )
                 except Exception:
+                    attempts = storage.record_attempt(entry["id"], now_ts)
                     logging.exception(
                         "Failed to send email for entry %s to %s",
                         entry["id"],
                         entry["email"],
                     )
+                    if attempts >= settings.max_send_attempts:
+                        storage.mark_failed(entry["id"], now_ts)
+                        await application.bot.send_message(
+                            chat_id=entry["chat_id"],
+                            text=(
+                                "Email delivery failed after multiple attempts. "
+                                "Check your SMTP settings and use /schedule again."
+                            ),
+                        )
             await asyncio.sleep(settings.check_interval_seconds)
         except asyncio.CancelledError:
             raise
