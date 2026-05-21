@@ -32,6 +32,11 @@ def _get_env(name: str, default: str | None = None, required: bool = False) -> s
     return value or ""
 
 
+def _get_bool_env(name: str, default: str) -> bool:
+    value = _get_env(name, default)
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _get_int_env(name: str, default: str, minimum: int = 1) -> int:
     value = _get_env(name, default)
     try:
@@ -52,10 +57,8 @@ def load_settings() -> Settings:
         smtp_user=smtp_user,
         smtp_password=_get_env("SMTP_PASSWORD", required=True),
         smtp_from=_get_env("SMTP_FROM", smtp_user),
-        smtp_use_ssl=_get_env("SMTP_USE_SSL", "false").lower()
-        in {"1", "true", "yes", "on"},
-        smtp_use_tls=_get_env("SMTP_USE_TLS", "true").lower()
-        in {"1", "true", "yes", "on"},
+        smtp_use_ssl=_get_bool_env("SMTP_USE_SSL", "false"),
+        smtp_use_tls=_get_bool_env("SMTP_USE_TLS", "true"),
         database_path=_get_env("DATABASE_PATH", "data/deadman.sqlite"),
         check_interval_seconds=_get_int_env("CHECK_INTERVAL_SECONDS", "60", minimum=5),
         max_send_attempts=_get_int_env("MAX_SEND_ATTEMPTS", "5", minimum=1),

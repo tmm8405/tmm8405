@@ -11,7 +11,7 @@ def send_email(settings: Settings, recipient: str, body: str) -> None:
     msg = EmailMessage()
     msg["From"] = settings.smtp_from
     msg["To"] = recipient
-    msg["Subject"] = "Scheduled message"
+    msg["Subject"] = "Deadman Timer Message"
     msg.set_content(body)
 
     smtp_class = smtplib.SMTP_SSL if settings.smtp_use_ssl else smtplib.SMTP
