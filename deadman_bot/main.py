@@ -14,7 +14,10 @@ from config import Settings, load_settings
 from emailer import send_email
 from storage import Storage
 
-EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+EMAIL_RE = re.compile(
+    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+"
+    r"@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$"
+)
 SECONDS_PER_DAY = 86400
 
 

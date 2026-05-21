@@ -44,18 +44,42 @@ class Storage:
         self, chat_id: int, email: str, message: str, due_at: int, now_ts: int
     ) -> None:
         with self._connect() as conn:
-            conn.execute(
-                "DELETE FROM deadman_entries WHERE chat_id = ? AND sent_at IS NULL",
+            cur = conn.execute(
+                """
+                SELECT id FROM deadman_entries
+                WHERE chat_id = ? AND sent_at IS NULL
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
                 (chat_id,),
             )
-            conn.execute(
-                """
-                INSERT INTO deadman_entries
-                    (chat_id, email, message, due_at, created_at, updated_at, sent_at)
-                VALUES (?, ?, ?, ?, ?, ?, NULL)
-                """,
-                (chat_id, email, message, due_at, now_ts, now_ts),
-            )
+            row = cur.fetchone()
+            if row:
+                entry_id = row["id"]
+                conn.execute(
+                    """
+                    UPDATE deadman_entries
+                    SET email = ?, message = ?, due_at = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (email, message, due_at, now_ts, entry_id),
+                )
+                conn.execute(
+                    """
+                    DELETE FROM deadman_entries
+                    WHERE chat_id = ? AND sent_at IS NULL AND id != ?
+                    """,
+                    (chat_id, entry_id),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO deadman_entries
+                        (chat_id, email, message, due_at, created_at, updated_at, sent_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NULL)
+                    """,
+                    (chat_id, email, message, due_at, now_ts, now_ts),
+                )
             conn.commit()
 
     def get_active_entry(self, chat_id: int) -> sqlite3.Row | None:
